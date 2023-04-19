@@ -1,5 +1,5 @@
 from stupidArtnet import StupidArtnetServer
-from pyglet import app, clock, gl, image, window, shapes, graphics
+from pyglet import app, clock, gl, image, window, shapes, graphics, canvas
 from typing import List
 from shape import Shape
 import defaultShapes
@@ -13,7 +13,9 @@ storedShapes: List[Shape] = [defaultShapes.defaultRect, defaultShapes.rotStar, d
 
 keymap = {window.key._0: 10, window.key._1: 1, window.key._2: 2, window.key._3: 3, window.key._4: 4, window.key._5: 5, window.key._6: 6, window.key._7: 7, window.key._8: 8, window.key._9: 9}
 
-displayWindow = window.Window(WIDTH, HEIGHT)
+display = canvas.get_display()
+screens = display.get_screens()
+displayWindow = window.Window(WIDTH, HEIGHT, fullscreen=True, screen=screens[1])
 
 def updateTime(t):
     global time
