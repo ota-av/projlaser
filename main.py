@@ -1,78 +1,47 @@
 from stupidArtnet import StupidArtnetServer
-from pyglet import app, clock, gl, image, window, shapes
-import ctypes
-import colorsys
+from pyglet import app, clock, gl, image, window, shapes, graphics
 from typing import List
+from shape import Shape
+import defaultShapes
 
 WIDTH, HEIGHT = 1920, 1080
 
-n = 5 # max shapes, affects DMX footprint. 9 chan per shape
-
-def hsv2rgb(h,s,v):
-    return tuple(round(i * 255) for i in colorsys.hsv_to_rgb(h,s,v))
-
-class ShapeParams():
-    def __init__(self):
-        self.o = 1
-        self.h = 0
-        self.s = 1
-        self.v = 1
-        self.x = 0.5
-        self.y = 0.5
-        self.sizex = 0.5
-        self.sizey = 0.5
-        self.shape = 0
-
-    def _rect(self, WIDTH, HEIGHT):
-        width = WIDTH * self.sizex
-        height = HEIGHT * self.sizey
-
-        absx = WIDTH * self.x - width/2
-        absy = HEIGHT * self.y - height/2
-
-        return shapes.Rectangle(absx, absy, width, height)
-
-    def get_shape(self, WIDTH, HEIGHT):
-        shape = None
-        if self.shape == 0:
-            shape = self._rect(WIDTH, HEIGHT)
-        if not shape: 
-            return None
-        shape.color = hsv2rgb(self.h, self.s, self.v)
-        shape.opacity = round(self.o * 255)
-        return shape
+time = 0
  
-paramArray: List[ShapeParams] = []
+activeShapes: List[Shape] = []
+storedShapes: List[Shape] = [defaultShapes.defaultRect, defaultShapes.rotStar, defaultShapes.rotatingLine, defaultShapes.rotatingLineOffset, defaultShapes.rectLeft, defaultShapes.rectRight]
 
-for _ in range(n):
-    paramArray.append(ShapeParams())
+keymap = {window.key._0: 10, window.key._1: 1, window.key._2: 2, window.key._3: 3, window.key._4: 4, window.key._5: 5, window.key._6: 6, window.key._7: 7, window.key._8: 8, window.key._9: 9}
 
 displayWindow = window.Window(WIDTH, HEIGHT)
 
-
-
-def updateParams(t):
-    global paramArray
-    for i, param in enumerate(paramArray):
-        param.h = (param.h + t*0.01) % 1
-        param.sizey = 0.1
-        param.sizex = 0.2
-        param.x = (param.x + t*1) % 1
-        if i == 0:
-            param.o = 1
-        else:
-            param.o = 0
+def updateTime(t):
+    global time
+    time = time + t
 
 @displayWindow.event
 def on_draw():
-    global WIDTH, HEIGHT, paramArray
+    global WIDTH, HEIGHT, activeShapes, time
     displayWindow.clear()
 
-    shape = paramArray[0].get_shape(WIDTH, HEIGHT)
-    shape.draw()
+    for shape in activeShapes:
+        renderShape = shape.get_shape(WIDTH, HEIGHT, time)
+        renderShape.draw()
+
+@displayWindow.event
+def on_key_press(symbol, modifiers):
+    if symbol in keymap:
+        shapeNum = keymap[symbol] - 1
+        if shapeNum < len(storedShapes):
+            newShape = storedShapes[shapeNum]
+        wasActive = newShape in activeShapes
+        if newShape and not wasActive:
+            activeShapes.append(newShape)
+        else:
+            activeShapes.remove(newShape)
 
 if __name__ == "__main__":
-    clock.schedule_interval(updateParams, 1/60) # schedule 60 times per second
+    clock.schedule_interval(updateTime, 1/60) # schedule 60 times per second
     app.run()
 
 
