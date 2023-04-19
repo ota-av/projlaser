@@ -9,13 +9,13 @@ WIDTH, HEIGHT = 1920, 1080
 time = 0
  
 activeShapes: List[Shape] = []
-storedShapes: List[Shape] = [defaultShapes.defaultRect, defaultShapes.rotStar, defaultShapes.rotatingLine, defaultShapes.rotatingLineOffset, defaultShapes.rectLeft, defaultShapes.rectRight]
+storedShapes: List[Shape] = [defaultShapes.rectUpdown, defaultShapes.rotStar, defaultShapes.rotatingLine, defaultShapes.rotatingLineOffset, defaultShapes.rectLeft, defaultShapes.rectRight, defaultShapes.blackmid]
 
 keymap = {window.key._0: 10, window.key._1: 1, window.key._2: 2, window.key._3: 3, window.key._4: 4, window.key._5: 5, window.key._6: 6, window.key._7: 7, window.key._8: 8, window.key._9: 9}
 
 display = canvas.get_display()
 screens = display.get_screens()
-displayWindow = window.Window(WIDTH, HEIGHT, fullscreen=True, screen=screens[1])
+displayWindow = window.Window(WIDTH, HEIGHT, fullscreen=True, screen=screens[0])
 
 def updateTime(t):
     global time

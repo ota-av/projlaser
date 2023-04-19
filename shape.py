@@ -75,6 +75,12 @@ class Shape():
 
 
         return shapes.Star(midx,midy, size, size/10, 3)
+    
+    def _circ(self, WIDTH, HEIGHT, time):
+        midx = WIDTH * self.x.get(time)
+        midy = HEIGHT * self.y.get(time)
+        width = HEIGHT * self.sizex.get(time)
+        return shapes.Circle(midx,midy,width)
 
     def get_shape(self, WIDTH, HEIGHT, time):
         renderShape = None
@@ -84,6 +90,8 @@ class Shape():
             renderShape = self._tri(WIDTH, HEIGHT, time)
         elif self.type == "star":
             renderShape = self._star(WIDTH, HEIGHT, time)
+        elif self.type == "circ":
+            renderShape = self._circ(WIDTH, HEIGHT, time)
         if not renderShape:
             return None
 
