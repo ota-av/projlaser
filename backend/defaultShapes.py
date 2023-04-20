@@ -1,50 +1,50 @@
-from shape import Shape, FxParam
-defaultRect = Shape()
+from layer import Layer, FxParam
+defaultRect = Layer()
 defaultRect.type = "rect"
 defaultRect.sizex = FxParam(1)
 defaultRect.sizey = FxParam(0.1)
 
-rectUpdown = Shape()
+rectUpdown = Layer()
 rectUpdown.type = "rect"
 rectUpdown.sizex = FxParam(1)
 rectUpdown.sizey = FxParam(0.25)
 rectUpdown.y = FxParam(0.7, "sine", 0.2, 1)
 
 
-blackmid = Shape()
+blackmid = Layer()
 blackmid.type = "circ"
-blackmid.v = FxParam(0)
+blackmid.value = FxParam(0)
 blackmid.sizex = FxParam(0.3)
 
 
-rectLeft = Shape()
+rectLeft = Layer()
 rectLeft.type = "rect"
 rectLeft.x = FxParam(0.25)
 rectLeft.sizex = FxParam(0.5)
 rectLeft.sizey = FxParam(1)
-rectLeft.s = FxParam(0)
+rectLeft.saturation = FxParam(0)
 
-rectRight = Shape()
+rectRight = Layer()
 rectRight.type = "rect"
 rectRight.x = FxParam(0.75)
 rectRight.sizex = FxParam(0.5)
 rectRight.sizey = FxParam(1)
-rectRight.s = FxParam(0)
+rectRight.saturation = FxParam(0)
 
-rotStar = Shape()
+rotStar = Layer()
 rotStar.type = "star"
-rotStar.r = FxParam(0, "linear", 1, 1, 0)
+rotStar.rotation = FxParam(0, "linear", 1, 1, 0)
 
-rotatingLine = Shape()
+rotatingLine = Layer()
 rotatingLine.type = "rect"
-rotatingLine.r = FxParam(0, "linear", 1, 0.75, 0)
+rotatingLine.rotation = FxParam(0, "linear", 1, 0.75, 0)
 rotatingLine.sizex = FxParam(1)
 rotatingLine.sizey = FxParam(0.15)
-rotatingLine.s = FxParam(0)
+rotatingLine.saturation = FxParam(0)
 
-rotatingLineOffset = Shape()
+rotatingLineOffset = Layer()
 rotatingLineOffset.type = "rect"
-rotatingLineOffset.r = FxParam(0, "linear", 1, 0.75, 0.25)
+rotatingLineOffset.rotation = FxParam(0, "linear", 1, 0.75, 0.25)
 rotatingLineOffset.sizex = FxParam(1)
 rotatingLineOffset.sizey = FxParam(0.15)
-rotatingLineOffset.s = FxParam(0)
+rotatingLineOffset.saturation = FxParam(0)

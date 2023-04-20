@@ -1,15 +1,15 @@
 from stupidArtnet import StupidArtnetServer
 from pyglet import app, clock, gl, image, window, shapes, graphics, canvas
 from typing import List
-from shape import Shape
+from layer import Layer
 import defaultShapes
 
 WIDTH, HEIGHT = 1920, 1080
 
 time = 0
  
-activeShapes: List[Shape] = []
-storedShapes: List[Shape] = [defaultShapes.rectUpdown, defaultShapes.rotStar, defaultShapes.rotatingLine, defaultShapes.rotatingLineOffset, defaultShapes.rectLeft, defaultShapes.rectRight, defaultShapes.blackmid]
+activeShapes: List[Layer] = []
+storedShapes: List[Layer] = [defaultShapes.rectUpdown, defaultShapes.rotStar, defaultShapes.rotatingLine, defaultShapes.rotatingLineOffset, defaultShapes.rectLeft, defaultShapes.rectRight, defaultShapes.blackmid]
 
 keymap = {window.key._0: 10, window.key._1: 1, window.key._2: 2, window.key._3: 3, window.key._4: 4, window.key._5: 5, window.key._6: 6, window.key._7: 7, window.key._8: 8, window.key._9: 9}
 
