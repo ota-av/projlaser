@@ -1,25 +1,38 @@
 # A playback is a set of  
 
-from layer import FxParam, Layer
-from typing_extensions import TypedDict
+from layer import Layer
+import param
+from typing_extensions import TypedDict, Literal
 
-# A single value for a layer
-class PlaybackValue(TypedDict):
-    property: str
-    value: FxParam
-
+AllowedParams = Literal["opacity", "hue", "saturation", "value", "x", "y", "sizex", "sizey", "rotation", "type"]
 
 class Playback(TypedDict):
-    layervalues: dict[str, list[PlaybackValue]]
+    layervalues: dict[str, dict[AllowedParams, param.FxParam]]
     id: str
     name: str
-
+    priority: int
 
 def apply(playback: Playback, layer: Layer, layerid: str):
     if not layerid in playback['layervalues']:
         return layer
 
-    for pval in playback['layervalues'][layerid]:
-        layer[pval['property']] = pval['value']
+    for prop in playback['layervalues'][layerid]:
+        val = playback['layervalues'][layerid][prop]
+        layer[prop] = val
 
     return layer
+
+def new_playback(id):
+    pb = Playback(layervalues={}, id=id, name="", priority=0)
+    return pb
+
+def setPlaybackValue(playback: Playback, layerid: str, param: AllowedParams, value: param.FxParam):
+    if not layerid in playback['layervalues']:
+        playback['layervalues'][layerid] = {}
+
+    playback['layervalues'][layerid][param] = value
+    return playback
+
+
+testPlayback = new_playback("123")
+setPlaybackValue(testPlayback, "1", "opacity", param.new(1))

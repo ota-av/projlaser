@@ -21,5 +21,5 @@ class FxParam(TypedDict):
 def get(param: FxParam, time):
     return param["value"] + FxFuncMap[param["func"]]((time*param["speed"] + param["phase"]) % 1)*param["speed"]
 
-def new(initial: float = 0.5, func: FxFuncs = "static", speed: float = 1, scale: float = 1, phase: float = 0):
+def new(initial: float = 0, func: FxFuncs = "static", speed: float = 1, scale: float = 1, phase: float = 0):
     return FxParam(value=initial, func=func, phase=phase, speed=speed, scale=scale)
