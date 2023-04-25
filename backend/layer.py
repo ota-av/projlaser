@@ -17,7 +17,7 @@ class Layer(TypedDict):
 
 
 def _rect(layer, WIDTH, HEIGHT, time):
-    width = HEIGHT * param.get(layer["sizex"], time)
+    width = WIDTH * param.get(layer["sizex"], time)
     height = HEIGHT * param.get(layer["sizey"], time)
 
     midx = WIDTH * param.get(layer["x"], time)

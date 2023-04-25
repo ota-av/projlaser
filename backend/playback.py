@@ -4,10 +4,12 @@ from layer import Layer
 import param
 from typing_extensions import TypedDict, Literal
 
-AllowedParams = Literal["opacity", "hue", "saturation", "value", "x", "y", "sizex", "sizey", "rotation", "type"]
+AllowedParams = Literal["opacity", "hue", "saturation", "value", "x", "y", "sizex", "sizey", "rotation"]
+AllowedTypes = Literal["rect", "tri", "star", "circ"]
 
 class Playback(TypedDict):
-    layervalues: dict[str, dict[AllowedParams, param.FxParam]]
+    layervalues: dict[str, dict[AllowedParams, param.FxParam | AllowedTypes]]
+    types: dict[str, str]
     id: str
     name: str
     priority: int
@@ -32,7 +34,3 @@ def setPlaybackValue(playback: Playback, layerid: str, param: AllowedParams, val
 
     playback['layervalues'][layerid][param] = value
     return playback
-
-
-testPlayback = new_playback("123")
-setPlaybackValue(testPlayback, "1", "opacity", param.new(1))

@@ -2,16 +2,22 @@ from stupidArtnet import StupidArtnetServer
 from pyglet import app, clock, gl, image, window, shapes, graphics, canvas
 from typing import List
 from flask import Flask, request
+
+from copy import deepcopy
+
+import math
     
 import layer
 import playback
 import threading
-WIDTH, HEIGHT = 16*50, 9*50
+WIDTH, HEIGHT = 16*75, 9*50
 
 api = Flask(__name__)
 api.use_reloader = False # Disable reloader to support multithread
 
-time = 0
+realtime = 0
+bpmstarttime = 0
+bpm = 120
  
 display = canvas.get_display()
 screens = display.get_screens()
@@ -19,9 +25,9 @@ display_window = window.Window(WIDTH, HEIGHT, fullscreen=False, screen=screens[0
 
 rendered_layers: list[layer.Layer] = []
 
-layerids: list[str] = ["1", "2", "3"]
+layerids: list[str] = ["1", "2", "3", "4"]
 
-active_playbacks: list[playback.Playback] = [playback.testPlayback]
+active_playbacks: list[playback.Playback] = []
 playbacks: list[playback.Playback] = []
 
 programmer: playback.Playback = playback.new_playback("programmer")
@@ -43,20 +49,29 @@ def render_playbacks():
             rendered_layers.append(l)
 
 def update_time(t):
-    global time
-    time = time + t
+    global realtime
+    realtime = realtime + t
 
 def update(t):
     update_time(t)
     render_playbacks()
 
+def get_bpm_time():
+    global realtime, bpm, bpmstarttime
+    with lock:
+        realduration = realtime - bpmstarttime
+        bpmduration = realduration * bpm/60
+        return bpmduration
+
 @display_window.event
 def on_draw():
-    global WIDTH, HEIGHT, activeShapes, time
+    global WIDTH, HEIGHT, rendered_layers
     display_window.clear()
 
+    bpmtime = get_bpm_time()
+
     for l in rendered_layers:
-        pygletshape = layer.get_shape(l, WIDTH, HEIGHT, time)
+        pygletshape = layer.get_shape(l, WIDTH, HEIGHT, bpmtime)
         pygletshape.draw()
 
 @api.route('/api/playbacks')
@@ -84,12 +99,12 @@ def get_programmer():
 def update_programmer():
     global programmer, lock
 
-    if not "layerid" in request.json or not "param" in request.json or not "value" in request.json:
+    if not "layer" in request.json or not "param" in request.json or not "value" in request.json:
         return "Bad request", 400
 
     with lock:
         try:
-            lid = request.json["layerid"]
+            lid = request.json["layer"]
             param = request.json["param"]
             val = request.json["value"]
             playback.setPlaybackValue(programmer, lid, param, val)
@@ -103,12 +118,52 @@ def clear_programmer():
     with lock:
         programmer = playback.new_playback("programmer")
         return programmer
+    
+@api.route('/api/record', methods=["POST"])
+def record():
+    global programmer, playbacks, lock
+    with lock:
+        pb = deepcopy(programmer)
+        pb["id"] = request.json["id"]
+        playbacks.append(pb)
+        return pb
+
+@api.route('/api/playback/<pb_id>/on', methods=["POST"])
+def on(pb_id=0):
+    global playbacks, active_playbacks, lock
+    pb_id = int(pb_id)
+    with lock:
+        matches = [x for x in playbacks if x["id"] == pb_id]
+        print(playbacks[0]['id'], type(playbacks[0]['id']), pb_id, type(pb_id), matches, pb_id)
+        for m in matches:
+            active_playbacks.append(m)
+        return [x["id"] for x in active_playbacks]
+
+@api.route('/api/playback/<pb_id>/off', methods=["POST"])
+def off(pb_id=0):
+    global playbacks, active_playbacks, lock
+    pb_id = int(pb_id)
+    with lock:
+        matches = [x for x in active_playbacks if x["id"] == pb_id]
+        for m in matches:
+            active_playbacks.remove(m)
+        return [x["id"] for x in active_playbacks]
+    
+@api.route('/api/bpm', methods=["POST"])
+def setbpm():
+    global bpm, bpmstarttime, realtime
+    with lock:
+        realduration = realtime - bpmstarttime
+        bpmtime = realduration * bpm/60 # keep bpmtime same to keep FX in same phase etc
+        bpm = request.json["bpm"]
+        bpmstarttime = realtime - math.fmod(bpmtime, 0.25)*bpm*60 # keep in same /4 phase
+        return '', 200
 
 def run_api():
     api.run(port=4000)
 
 if __name__ == "__main__":
-    clock.schedule_interval(update, 1/60) # schedule 60 times per second
+    clock.schedule_interval(update, 1/120) # schedule 60 times per second
     apithread = threading.Thread(target=run_api)
     apithread.daemon = True
     apithread.start()

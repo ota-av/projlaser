@@ -1,42 +1,176 @@
-import { getProgrammer, modifyProgrammer, clearProgrammer } from "../api/playback";
+import {
+  getProgrammer,
+  modifyProgrammer,
+  clearProgrammer,
+  getLayers,
+} from "../api/playback";
 
-import {useState, useEffect} from "react"
-import { Playback } from "../types/playback";
+import {
+  useState,
+  useEffect,
+  ReactNode,
+  EventHandler,
+  MouseEventHandler,
+  HTMLProps,
+  ButtonHTMLAttributes,
+} from "react";
+import { AllowedParams, FxParam, Playback } from "../types/playback";
 
-export function LayerButton({n}: {n: string}) {
-    return (
-        <button className="rounded p-2 m-1 bg-blue-400 hover:bg-blue-600 transition duration-100">{n}</button>
-    )
+import { ColorGroup, OpacityGroup, PosGroup, paramGroups } from "./Param";
+
+export function SelectButton({
+  children,
+  onClick,
+  className,
+  active,
+  ...props
+}: ButtonHTMLAttributes<HTMLButtonElement> & { active: boolean }) {
+  return (
+    <button
+      className={
+        `rounded p-2 m-1 ${
+          active ? "bg-blue-600" : "bg-blue-400"
+        } hover:bg-blue-600 transition duration-100 text-white text-lg` +
+        (className ? " " + className : "")
+      }
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
 }
 
-export function Programmer({className}: {className?: string}) {
-    const [prorammer, setProgrammer] = useState<Playback>();
-    const [error, setError] = useState<string>();
+export function Programmer({
+  className,
+  onRecord,
+  isRecording,
+}: {
+  className?: string;
+  onRecord: () => void;
+  isRecording: boolean;
+}) {
+  const [programmer, setProgrammer] = useState<Playback>();
+  const [error, setError] = useState<string>();
 
-    useEffect(() => {
-        const load = async () => {
-            try {
-                setProgrammer(await getProgrammer())
-            } catch (error: any) {
-                if (error && error instanceof Error) {
-                    setError((olderr) => {
-                        return olderr + error.message + "\n";
-                    })
-                }
+  const [layers, setLayers] = useState<string[]>([]);
+  const [selectedLayer, setSelectedLayer] = useState<string>();
+  const [selectedGroup, setSelectedGroup] =
+    useState<(typeof paramGroups)[number]>();
 
-            }
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setProgrammer(await getProgrammer());
+        const layers = await getLayers();
+        setLayers(layers);
+        setSelectedLayer(layers[0]);
+      } catch (error: any) {
+        if (error && error instanceof Error) {
+          setError((olderr) => {
+            return olderr + error.message + "\n";
+          });
         }
-    }, []);
+      }
+    };
 
-    const defaultClass = "bg-slate-200 h-40"
+    load();
+  }, []);
 
-    return (
-        <div className={className ? className + " " + defaultClass : defaultClass}>
-          {error && <p className="bg-red-200 p-2">{error}</p>}
-          Programmer
+  const updateParam = async (
+    layer: string,
+    param: AllowedParams,
+    value: FxParam
+  ) => {
+    setProgrammer(await modifyProgrammer(layer, param, value));
+  };
+
+  const clear = async () => {
+    setProgrammer(await clearProgrammer());
+  };
+
+  const defaultClass = "bg-slate-200";
+
+  return (
+    <div className={className ? className + " " + defaultClass : defaultClass}>
+      {error && (
+        <p className="bg-red-200 p-2 whitespace-pre-line fixed top-0 w-full">
+          {error}
+        </p>
+      )}
+      <div className="flex flex-row m-2">
+        <div>
+          <p>Layer</p>
           <div>
-            {["123", "1233"].map((layer) => <LayerButton n={layer} /> )}
+            {layers.map((layer) => (
+              <SelectButton
+                className="w-10 h-10"
+                active={layer === selectedLayer}
+                onClick={() => setSelectedLayer(layer)}
+              >
+                {layer}
+              </SelectButton>
+            ))}
+          </div>
+          <p>Param</p>
+          <div>
+            {paramGroups.map((param) => (
+              <SelectButton
+                active={param === selectedGroup}
+                onClick={() => setSelectedGroup(param)}
+              >
+                {param}
+              </SelectButton>
+            ))}
           </div>
         </div>
-    );
+        <div className="border-l border-slate-400 ml-4 pl-4">
+          {selectedLayer && programmer && (
+            <OpacityGroup
+              currentParams={programmer.layervalues[selectedLayer] || {}}
+              onChange={(param, value) =>
+                updateParam(selectedLayer, param, value)
+              }
+            ></OpacityGroup>
+          )}
+        </div>
+        <div className="border-l border-slate-400 ml-4 pl-4 flex">
+          {programmer && selectedLayer && selectedGroup === "color" && (
+            <ColorGroup
+              currentParams={programmer.layervalues[selectedLayer] || {}}
+              onChange={(param, value) =>
+                updateParam(selectedLayer, param, value)
+              }
+            ></ColorGroup>
+          )}
+          {programmer && selectedLayer && selectedGroup === "pos" && (
+            <PosGroup
+              currentParams={programmer.layervalues[selectedLayer] || {}}
+              onChange={(param, value) =>
+                updateParam(selectedLayer, param, value)
+              }
+            ></PosGroup>
+          )}
+        </div>
+        <div className="flex justify-self-end ml-auto flex-col">
+          <button
+            className={
+              "h-full m-1  text-lg transition duration-100 rounded p-2 px-4" +
+              (isRecording
+                ? " bg-green-600 hover:bg-green-400"
+                : " hover:bg-green-600 bg-green-400")
+            }
+            onClick={() => onRecord()}
+          >
+            Record
+          </button>
+          <button
+            className="h-full bg-red-400 m-1 hover:bg-red-600 text-white text-xl transition duration-100 rounded p-2 px-4"
+            onClick={() => clear()}
+          >
+            Clear
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
