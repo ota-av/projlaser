@@ -43,7 +43,7 @@ function App() {
           <div className="mt-2 flex flex-col border-t pt-2">
             <input
               type="text"
-              className="p-1 rounded border"
+              className="border-b border-gray-400 outline-none focus:border-gray-700 transition duration-100"
               defaultValue={info?.showname}
               onChange={(ev) => setEditingShowName(ev.target.value)}
               value={editingShowName}

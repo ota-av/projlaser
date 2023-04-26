@@ -45,17 +45,26 @@ lock = threading.Lock()
 
 def render_playbacks():
     global rendered_layers, active_playbacks, lock, programmer
+    t = get_bpm_time()
     with lock:
         rendered_layers.clear()
 
         for lid in layerids:
             l = layer.new()
             for pb in sorted(active_playbacks, key=lambda x: x["priority"]):
-                playback.apply(pb, l, lid)
+                playback.apply(pb, l, lid, t)
 
-            playback.apply(programmer, l, lid)
+            playback.apply(programmer, l, lid, t)
         
             rendered_layers.append(l)
+
+def update_playback_states():
+    global active_playbacks, lock
+    t = get_bpm_time()
+    for pb in active_playbacks:
+        if pb["duration"] != 0 and t - pb["startbpmtime"] > pb["duration"]:
+            off(pb_id = pb["id"])
+
 
 def update_time(t):
     global realtime
@@ -63,6 +72,7 @@ def update_time(t):
 
 def update(t):
     update_time(t)
+    update_playback_states()
     render_playbacks()
 
 def get_bpm_time():
@@ -77,10 +87,8 @@ def on_draw():
     global WIDTH, HEIGHT, rendered_layers
     display_window.clear()
 
-    bpmtime = get_bpm_time()
-
     for l in rendered_layers:
-        pygletshape = layer.get_shape(l, WIDTH, HEIGHT, bpmtime)
+        pygletshape = layer.get_shape(l, WIDTH, HEIGHT)
         pygletshape.draw()
 
 @api.route('/api/save', methods=["POST"])
@@ -172,19 +180,28 @@ def on(pb_id=0):
     with lock:
         matches = [x for x in playbacks if x["id"] == pb_id]
         for m in matches:
+            print(request.json)
             if ("name" in request.json):
                 m["name"] = request.json["name"]
             if ("key" in request.json):
                 m["key"] = request.json["key"]
+            if ("priority" in request.json):
+                m["priority"] = request.json["priority"]
+            if ("sync" in request.json):
+                m["sync"] = request.json["sync"]
+            if ("duration" in request.json):
+                m["duration"] = request.json["duration"]
             apisocket.emit('update_playback', m)
         return '', 200
 
 def on(pb_id=0):
     global playbacks, active_playbacks, lock
     pb_id = int(pb_id)
+    t = get_bpm_time()
     with lock:
         matches = [x for x in playbacks if x["id"] == pb_id]
         for m in matches:
+            m['startbpmtime'] = t
             active_playbacks.append(m)
         apisocket.emit('playback_state', {'id': pb_id, 'action': 'on'})
 
@@ -236,7 +253,13 @@ def onbpm(json):
         bpm = json["bpm"]
         bpmstarttime = realtime - math.fmod(bpmtime, 0.25)*bpm*60 # keep in same /4 phase
     
-    
+@display_window.event
+def on_key_press(symbol, modifiers):
+    if symbol == window.key.A:
+        with lock:
+            print(active_playbacks)
+            print(playbacks)
+
 def run_api():
     apisocket.run(api, port=4000)
 

@@ -10,23 +10,29 @@ AllowedTypes = Literal["rect", "tri", "star", "circ"]
 class Playback(TypedDict):
     layervalues: dict[str, dict[AllowedParams, param.FxParam | AllowedTypes]]
     types: dict[str, str]
-    id: str
+    id: int
     name: str
     priority: int
     key: Literal["flash", "toggle"]
+    sync: bool
+    startbpmtime: float | None
+    duration: int
 
-def apply(playback: Playback, layer: Layer, layerid: str):
+def apply(playback: Playback, layer: Layer, layerid: str, time: float):
     if not layerid in playback['layervalues']:
         return layer
+    
+    if (not playback["sync"] and "startbpmtime" in playback):
+        time = time - playback["startbpmtime"]
 
     for prop in playback['layervalues'][layerid]:
-        val = playback['layervalues'][layerid][prop]
+        val = param.get(playback['layervalues'][layerid][prop], time)
         layer[prop] = val
 
     return layer
 
 def new_playback(id):
-    pb = Playback(layervalues={}, id=id, name="", priority=0)
+    pb = Playback(layervalues={}, id=id, name="", priority=0, key="flash", sync=True, startbpmtime=None, duration=0)
     return pb
 
 def setPlaybackValue(playback: Playback, layerid: str, param: AllowedParams, value: param.FxParam):

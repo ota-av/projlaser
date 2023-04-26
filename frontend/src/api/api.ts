@@ -94,3 +94,13 @@ export async function save(name: string) {
     },
   });
 }
+
+export async function updatePlaybackMeta(id: number, props: Partial<Playback>) {
+  const res = await fetch(`/api/playback/${id}/meta`, {
+    method: "PATCH",
+    body: JSON.stringify(props),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}

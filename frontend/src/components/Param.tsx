@@ -58,6 +58,7 @@ function FxAdjust({
     <Fragment>
       <p className="m-1">Func</p>
       <select
+        value={param.func}
         onChange={(ev) => {
           onChange({
             ...param,
@@ -65,15 +66,15 @@ function FxAdjust({
           });
         }}
       >
-        <option selected={param.func === "static"}>static</option>
-        <option selected={param.func === "flash"}>flash</option>
-        <option selected={param.func === "sine"}>sine</option>
-        <option selected={param.func === "cos"}>cos</option>
-        <option selected={param.func === "linear"}>linear</option>
-        <option selected={param.func === "square"}>square</option>
-        <option selected={param.func === "cubic"}>cubic</option>
-        <option selected={param.func === "sqrt"}>sqrt</option>
-        <option selected={param.func === "cbrt"}>cbrt</option>
+        <option>static</option>
+        <option>flash</option>
+        <option>sine</option>
+        <option>cos</option>
+        <option>linear</option>
+        <option>square</option>
+        <option>cubic</option>
+        <option>sqrt</option>
+        <option>cbrt</option>
       </select>
       <p className="m-1">Phase</p>
       <input
@@ -278,6 +279,11 @@ export function PosGroup({
       ? currentParams["sizex"]
       : defaultParam(0.5);
 
+  const rotParam =
+    currentParams["rotation"] !== undefined
+      ? currentParams["rotation"]
+      : defaultParam(0);
+
   const sizeyParam =
     currentParams["sizey"] !== undefined
       ? currentParams["sizey"]
@@ -349,7 +355,7 @@ export function PosGroup({
               value={sizexParam.value}
               onChange={(ev) => {
                 onChange("sizex", {
-                  ...xParam,
+                  ...sizexParam,
                   value: Number(ev.target.value),
                 });
               }}
@@ -373,6 +379,50 @@ export function PosGroup({
             <FxAdjust
               param={sizexParam}
               onChange={(newParam) => onChange("sizex", newParam)}
+            />
+          </div>
+        </div>
+        <div
+          className={
+            "mx-2 items-center border border-slate-300 p-1 rounded" +
+            (isModified("rotation") ? " bg-blue-300" : "")
+          }
+        >
+          <div className="flex flex-row items-center m-1">
+            <p className="mr-1">Rotation</p>
+            <input
+              type="range"
+              className="w-80 mx-1"
+              min={0}
+              max={1}
+              step={0.01}
+              value={rotParam.value}
+              onChange={(ev) => {
+                onChange("rotation", {
+                  ...rotParam,
+                  value: Number(ev.target.value),
+                });
+              }}
+            ></input>
+            <input
+              className="w-12 mx-1"
+              type="number"
+              min={0}
+              max={1}
+              step={0.1}
+              value={rotParam.value}
+              onChange={(ev) => {
+                onChange("rotation", {
+                  ...rotParam,
+                  value: Number(ev.target.value),
+                });
+              }}
+            ></input>
+          </div>
+          <div className="flex flex-row items-center m-1">
+            <FxAdjust
+              param={rotParam}
+              onChange={(newParam) => onChange("rotation", newParam)}
             />
           </div>
         </div>
