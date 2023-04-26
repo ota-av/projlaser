@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Playback as PlaybackData } from "../types/playback";
 import { listPlaybacks, playPlayback, recordPlayback } from "../api/playback";
+import { socket } from "../socket";
 
 export function Playback({
   id,
@@ -26,11 +27,11 @@ export function Playback({
   if (isRecording && pb) color = "bg-blue-300 hover:bg-blue-400";
 
   const mdown = () => {
-    setActive(true);
+    pb && setActive(true);
   };
 
   const mup = () => {
-    setActive(false);
+    pb && setActive(false);
   };
 
   return (
@@ -59,10 +60,7 @@ export function Playbacks({
   const [activePlaybacks, setActivePlaybacks] = useState<number[]>([]);
 
   const onRecord = async (id: number) => {
-    const newpb = await recordPlayback(id);
-    setPlaybacks((oldPlaybacks: PlaybackData[]) => {
-      return [...oldPlaybacks, newpb];
-    });
+    await recordPlayback(id);
     onRecorded();
   };
 
@@ -73,12 +71,38 @@ export function Playbacks({
       setActivePlaybacks(active_ids);
     };
 
+    const onPlaybackState = (ev: { id: number; action: "on" | "off" }) => {
+      if (ev.action === "off") {
+        setActivePlaybacks((oldActives) => {
+          return [...oldActives.filter((compid) => compid !== ev.id)];
+        });
+      }
+      if (ev.action === "on") {
+        setActivePlaybacks((oldActives) => {
+          return [...oldActives, ev.id];
+        });
+      }
+    };
+
+    const onNewPlayback = (pb: PlaybackData) => {
+      setPlaybacks((oldPbs) => {
+        return [...oldPbs, pb];
+      });
+    };
+
+    socket.on("playback_state", onPlaybackState);
+    socket.on("new_playback", onNewPlayback);
+
     load();
+
+    return () => {
+      socket.off("playback_state", onPlaybackState);
+      socket.off("new_playback", onNewPlayback);
+    };
   }, []);
 
   const changePbState = async (id: number, newState: boolean) => {
-    const newActives = await playPlayback(id, newState);
-    setActivePlaybacks(newActives);
+    await playPlayback(id, newState);
   };
 
   return (

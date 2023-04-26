@@ -2,6 +2,8 @@ from stupidArtnet import StupidArtnetServer
 from pyglet import app, clock, gl, image, window, shapes, graphics, canvas
 from typing import List
 from flask import Flask, request
+from flask_socketio import SocketIO
+import json
 
 from copy import deepcopy
 
@@ -14,6 +16,7 @@ WIDTH, HEIGHT = 16*75, 9*50
 
 api = Flask(__name__)
 api.use_reloader = False # Disable reloader to support multithread
+apisocket = SocketIO(api, cors_allowed_origins="*")
 
 realtime = 0
 bpmstarttime = 0
@@ -95,29 +98,13 @@ def get_programmer():
     with lock:
         return programmer
     
-@api.route('/api/programmer', methods=["PATCH"])
-def update_programmer():
-    global programmer, lock
-
-    if not "layer" in request.json or not "param" in request.json or not "value" in request.json:
-        return "Bad request", 400
-
-    with lock:
-        try:
-            lid = request.json["layer"]
-            param = request.json["param"]
-            val = request.json["value"]
-            playback.setPlaybackValue(programmer, lid, param, val)
-            return programmer
-        except Exception as err:
-            return err, 500
-    
 @api.route('/api/programmer', methods=["DELETE"])
 def clear_programmer():
     global programmer, lock
     with lock:
         programmer = playback.new_playback("programmer")
-        return programmer
+        apisocket.emit('programmer', programmer)
+        return '', 200
     
 @api.route('/api/record', methods=["POST"])
 def record():
@@ -126,7 +113,8 @@ def record():
         pb = deepcopy(programmer)
         pb["id"] = request.json["id"]
         playbacks.append(pb)
-        return pb
+        apisocket.emit('new_playback', pb)
+        return '', 200
 
 @api.route('/api/playback/<pb_id>/on', methods=["POST"])
 def on(pb_id=0):
@@ -137,7 +125,8 @@ def on(pb_id=0):
         print(playbacks[0]['id'], type(playbacks[0]['id']), pb_id, type(pb_id), matches, pb_id)
         for m in matches:
             active_playbacks.append(m)
-        return [x["id"] for x in active_playbacks]
+        apisocket.emit('playback_state', {'id': pb_id, 'action': 'on'})
+        return '', 200
 
 @api.route('/api/playback/<pb_id>/off', methods=["POST"])
 def off(pb_id=0):
@@ -147,7 +136,8 @@ def off(pb_id=0):
         matches = [x for x in active_playbacks if x["id"] == pb_id]
         for m in matches:
             active_playbacks.remove(m)
-        return [x["id"] for x in active_playbacks]
+        apisocket.emit('playback_state', {'id': pb_id, 'action': 'off'})
+        return 'OK', 200
     
 @api.route('/api/bpm', methods=["POST"])
 def setbpm():
@@ -159,8 +149,38 @@ def setbpm():
         bpmstarttime = realtime - math.fmod(bpmtime, 0.25)*bpm*60 # keep in same /4 phase
         return '', 200
 
+@apisocket.on('programmer')
+def onProgrammer(json):
+    global programmer, lock
+
+    with lock:
+        lid = json["layer"]
+        param = json["param"]
+        val = json["value"]
+        playback.setPlaybackValue(programmer, lid, param, val)
+        apisocket.emit('programmer', programmer)
+
+@apisocket.on('playback_state')
+def onPlayback(json):
+    pb_id = json["id"]
+    action = json["action"]
+    if(action == 'off'): 
+        off(pb_id=pb_id)
+    if(action == 'on'): 
+        on(pb_id=pb_id)
+
+@apisocket.on('bpm')
+def onbpm(json):
+    global bpm, bpmstarttime, realtime
+    with lock:
+        realduration = realtime - bpmstarttime
+        bpmtime = realduration * bpm/60 # keep bpmtime same to keep FX in same phase etc
+        bpm = json["bpm"]
+        bpmstarttime = realtime - math.fmod(bpmtime, 0.25)*bpm*60 # keep in same /4 phase
+    
+    
 def run_api():
-    api.run(port=4000)
+    apisocket.run(api, port=4000)
 
 if __name__ == "__main__":
     clock.schedule_interval(update, 1/120) # schedule 60 times per second

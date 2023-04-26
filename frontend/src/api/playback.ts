@@ -1,3 +1,4 @@
+import { socket } from "../socket";
 import { Playback, AllowedParams, FxParam } from "../types/playback";
 
 interface PlaybackListRes {
@@ -33,35 +34,15 @@ export async function modifyProgrammer(
     param,
     value,
   };
-  const res = await fetch("/api/programmer", {
-    method: "PATCH",
-    body: JSON.stringify(data),
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  const programmer = (await res.json()) as Playback;
-  return programmer;
+  socket.emit("programmer", data);
 }
 
 export async function clearProgrammer() {
   const res = await fetch("/api/programmer", { method: "DELETE" });
-  const programmer = (await res.json()) as Playback;
-  return programmer;
 }
 
 export async function sendBPM(bpm: number) {
-  const data = {
-    bpm,
-  };
-  const res = await fetch("/api/bpm", {
-    method: "POST",
-    body: JSON.stringify(data),
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-  return;
+  socket.emit("bpm", { bpm });
 }
 
 export async function recordPlayback(id: number) {
@@ -75,13 +56,9 @@ export async function recordPlayback(id: number) {
       "Content-Type": "application/json",
     },
   });
-  return (await res.json()) as Playback;
 }
 
 export async function playPlayback(id: number, newstate: boolean) {
   const action = newstate ? "on" : "off";
-  const res = await fetch(`/api/playback/${id}/${action}`, {
-    method: "POST",
-  });
-  return (await res.json()) as number[];
+  socket.emit("playback_state", { id, action });
 }

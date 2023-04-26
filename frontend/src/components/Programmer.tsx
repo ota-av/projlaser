@@ -17,6 +17,7 @@ import {
 import { AllowedParams, FxParam, Playback } from "../types/playback";
 
 import { ColorGroup, OpacityGroup, PosGroup, paramGroups } from "./Param";
+import { socket } from "../socket";
 
 export function SelectButton({
   children,
@@ -73,20 +74,18 @@ export function Programmer({
       }
     };
 
+    const onProgrammer = (val: Playback) => {
+      setProgrammer(val);
+    };
+
+    socket.on("programmer", onProgrammer);
+
     load();
+
+    return () => {
+      socket.off("programmer", onProgrammer);
+    };
   }, []);
-
-  const updateParam = async (
-    layer: string,
-    param: AllowedParams,
-    value: FxParam
-  ) => {
-    setProgrammer(await modifyProgrammer(layer, param, value));
-  };
-
-  const clear = async () => {
-    setProgrammer(await clearProgrammer());
-  };
 
   const defaultClass = "bg-slate-200";
 
@@ -128,7 +127,7 @@ export function Programmer({
             <OpacityGroup
               currentParams={programmer.layervalues[selectedLayer] || {}}
               onChange={(param, value) =>
-                updateParam(selectedLayer, param, value)
+                modifyProgrammer(selectedLayer, param, value)
               }
             ></OpacityGroup>
           )}
@@ -138,7 +137,7 @@ export function Programmer({
             <ColorGroup
               currentParams={programmer.layervalues[selectedLayer] || {}}
               onChange={(param, value) =>
-                updateParam(selectedLayer, param, value)
+                modifyProgrammer(selectedLayer, param, value)
               }
             ></ColorGroup>
           )}
@@ -146,7 +145,7 @@ export function Programmer({
             <PosGroup
               currentParams={programmer.layervalues[selectedLayer] || {}}
               onChange={(param, value) =>
-                updateParam(selectedLayer, param, value)
+                modifyProgrammer(selectedLayer, param, value)
               }
             ></PosGroup>
           )}
@@ -165,7 +164,7 @@ export function Programmer({
           </button>
           <button
             className="h-full bg-red-400 m-1 hover:bg-red-600 text-white text-xl transition duration-100 rounded p-2 px-4"
-            onClick={() => clear()}
+            onClick={() => clearProgrammer()}
           >
             Clear
           </button>
