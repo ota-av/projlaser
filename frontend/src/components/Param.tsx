@@ -168,8 +168,6 @@ export function OpacityGroup({
 
   const isModified = currentParams["opacity"] !== undefined;
 
-  console.log(currentParams);
-
   return (
     <div
       className={
@@ -243,7 +241,6 @@ export function ColorGroup({
   const onChangeColor = (color: {
     hsl: { h: number; s: number; l: number };
   }) => {
-    console.log(color);
     const hsvColor = hsl2hsv(color.hsl.h / 360, color.hsl.s, color.hsl.l);
     onChange("hue", { ...hParam, value: hsvColor[0] });
     onChange("saturation", { ...sParam, value: hsvColor[1] });
@@ -289,8 +286,6 @@ export function PosGroup({
   function isModified(x: AllowedParams) {
     return currentParams[x] !== undefined;
   }
-
-  console.log(currentParams);
 
   return (
     <div className="flex">

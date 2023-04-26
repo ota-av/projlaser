@@ -13,6 +13,7 @@ class Playback(TypedDict):
     id: str
     name: str
     priority: int
+    key: Literal["flash", "toggle"]
 
 def apply(playback: Playback, layer: Layer, layerid: str):
     if not layerid in playback['layervalues']:

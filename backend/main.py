@@ -5,6 +5,10 @@ from flask import Flask, request
 from flask_socketio import SocketIO
 import json
 
+from os import path, makedirs
+
+from sanitize_filename import sanitize
+
 from copy import deepcopy
 
 import math
@@ -35,6 +39,8 @@ playbacks: list[playback.Playback] = []
 
 programmer: playback.Playback = playback.new_playback("programmer")
 
+showname: str = "default"
+
 lock = threading.Lock()
 
 def render_playbacks():
@@ -60,7 +66,7 @@ def update(t):
     render_playbacks()
 
 def get_bpm_time():
-    global realtime, bpm, bpmstarttime
+    global realtime, bpm, bpmstarttime, lock
     with lock:
         realduration = realtime - bpmstarttime
         bpmduration = realduration * bpm/60
@@ -76,6 +82,49 @@ def on_draw():
     for l in rendered_layers:
         pygletshape = layer.get_shape(l, WIDTH, HEIGHT, bpmtime)
         pygletshape.draw()
+
+@api.route('/api/save', methods=["POST"])
+def save():
+    global programmer, playbacks, active_playbacks, bpm, showname, lock
+    filename = 'saved/' + sanitize(request.json['name']) + ".json"
+    makedirs('saved', exist_ok=True)
+    with open(filename, 'w') as outf:
+        with lock:
+            savedict = {
+                'programmer': programmer,
+                'playbacks': playbacks,
+                'active_playbacks': active_playbacks,
+                'bpm': bpm
+            }
+            showname = request.json['name']
+            json.dump(savedict, outf)
+            apisocket.emit('reload')
+
+@api.route('/api/load', methods=["POST"])
+def load():
+    global programmer, playbacks, active_playbacks, bpm, showname, lock
+    filename = 'saved/' + sanitize(request.json['name']) + ".json"
+
+    if(not path.isfile(filename)):
+        return 'Invalid showname', 404
+    
+    with open(filename, 'r') as inf:
+        loadedshow = json.load(inf)
+        with lock:
+            programmer = loadedshow['programmer']
+            playbacks = loadedshow['playbacks']
+            active_playbacks = loadedshow['active_playbacks']
+            bpm = loadedshow['bpm']
+            showname = request.json['name']
+            apisocket.emit('reload')
+
+@api.route('/api/info')
+def info():
+    global showname, lock
+    with lock:
+        return {
+            "showname": showname,
+        }
 
 @api.route('/api/playbacks')
 def list_plabacks():
@@ -116,19 +165,29 @@ def record():
         apisocket.emit('new_playback', pb)
         return '', 200
 
-@api.route('/api/playback/<pb_id>/on', methods=["POST"])
+@api.route('/api/playback/<pb_id>/meta', methods=["PATCH"])
 def on(pb_id=0):
     global playbacks, active_playbacks, lock
     pb_id = int(pb_id)
     with lock:
         matches = [x for x in playbacks if x["id"] == pb_id]
-        print(playbacks[0]['id'], type(playbacks[0]['id']), pb_id, type(pb_id), matches, pb_id)
+        for m in matches:
+            if ("name" in request.json):
+                m["name"] = request.json["name"]
+            if ("key" in request.json):
+                m["key"] = request.json["key"]
+            apisocket.emit('update_playback', m)
+        return '', 200
+
+def on(pb_id=0):
+    global playbacks, active_playbacks, lock
+    pb_id = int(pb_id)
+    with lock:
+        matches = [x for x in playbacks if x["id"] == pb_id]
         for m in matches:
             active_playbacks.append(m)
         apisocket.emit('playback_state', {'id': pb_id, 'action': 'on'})
-        return '', 200
 
-@api.route('/api/playback/<pb_id>/off', methods=["POST"])
 def off(pb_id=0):
     global playbacks, active_playbacks, lock
     pb_id = int(pb_id)
@@ -137,7 +196,6 @@ def off(pb_id=0):
         for m in matches:
             active_playbacks.remove(m)
         apisocket.emit('playback_state', {'id': pb_id, 'action': 'off'})
-        return 'OK', 200
     
 @api.route('/api/bpm', methods=["POST"])
 def setbpm():

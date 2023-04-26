@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { sendBPM } from "../api/playback";
+import { sendBPM } from "../api/api";
 
 export function BPMTapper() {
   const [count, setCount] = useState(0);

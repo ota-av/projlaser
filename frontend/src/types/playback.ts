@@ -40,4 +40,5 @@ export interface Playback {
   id: number;
   name: string;
   priority: number;
+  key: "flash" | "toggle";
 }
