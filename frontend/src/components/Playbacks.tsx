@@ -8,6 +8,7 @@ import {
 } from "../api/api";
 import { socket } from "../socket";
 import Modal from "./Modal";
+import { ChaseListing } from "./Chase";
 
 export function PlaybackEditModal({
   pb,
@@ -21,60 +22,63 @@ export function PlaybackEditModal({
   return (
     <Modal open={open} onClose={onClose}>
       {pb && (
-        <div>
-          <p>Name</p>
-          <input
-            type="text"
-            className="border-b border-gray-400 outline-none focus:border-gray-700 transition duration-100"
-            value={pb.name}
-            onChange={(ev) =>
-              updatePlaybackMeta(pb.id, { name: ev.target.value })
-            }
-          ></input>
-          <p className="mt-2">Priority</p>
-          <input
-            type="number"
-            value={pb.priority}
-            step={1}
-            className="border-b border-gray-400 outline-none focus:border-gray-700 transition duration-100"
-            onChange={(ev) =>
-              updatePlaybackMeta(pb.id, { priority: Number(ev.target.value) })
-            }
-          ></input>
-          <p className="mt-2">Keytype</p>
-          <select
-            value={pb.key}
-            className="border-b border-gray-400 outline-none focus:border-gray-700 transition duration-100"
-            onChange={(ev) => {
-              updatePlaybackMeta(pb.id, {
-                key: ev.target.value as "flash" | "toggle",
-              });
-            }}
-          >
-            <option value="toggle">toggle</option>
-            <option value="flash">flash</option>
-          </select>
-          <p className="mt-2">
-            Sync
+        <div className="flex flex-row">
+          <div className="mr-2 pr-2 border-r">
+            <p>Name</p>
             <input
-              type="checkbox"
-              className="w-4 h-4 align-middle ml-2"
-              checked={pb.sync}
+              type="text"
+              className="border-b border-gray-400 outline-none focus:border-gray-700 transition duration-100"
+              value={pb.name}
               onChange={(ev) =>
-                updatePlaybackMeta(pb.id, { sync: ev.target.checked })
+                updatePlaybackMeta(pb.id, { name: ev.target.value })
               }
             ></input>
-          </p>
-          <p className="mt-2">Duration (cycles)</p>
-          <input
-            type="number"
-            value={pb.duration}
-            step={1}
-            className="border-b border-gray-400 outline-none focus:border-gray-700 transition duration-100"
-            onChange={(ev) =>
-              updatePlaybackMeta(pb.id, { duration: Number(ev.target.value) })
-            }
-          ></input>
+            <p className="mt-2">Priority</p>
+            <input
+              type="number"
+              value={pb.priority}
+              step={1}
+              className="border-b border-gray-400 outline-none focus:border-gray-700 transition duration-100"
+              onChange={(ev) =>
+                updatePlaybackMeta(pb.id, { priority: Number(ev.target.value) })
+              }
+            ></input>
+            <p className="mt-2">Keytype</p>
+            <select
+              value={pb.key}
+              className="border-b border-gray-400 outline-none focus:border-gray-700 transition duration-100"
+              onChange={(ev) => {
+                updatePlaybackMeta(pb.id, {
+                  key: ev.target.value as "flash" | "toggle",
+                });
+              }}
+            >
+              <option value="toggle">toggle</option>
+              <option value="flash">flash</option>
+            </select>
+            <p className="mt-2">
+              Sync
+              <input
+                type="checkbox"
+                className="w-4 h-4 align-middle ml-2"
+                checked={pb.sync}
+                onChange={(ev) =>
+                  updatePlaybackMeta(pb.id, { sync: ev.target.checked })
+                }
+              ></input>
+            </p>
+            <p className="mt-2">Duration (cycles)</p>
+            <input
+              type="number"
+              value={pb.duration}
+              step={1}
+              className="border-b border-gray-400 outline-none focus:border-gray-700 transition duration-100"
+              onChange={(ev) =>
+                updatePlaybackMeta(pb.id, { duration: Number(ev.target.value) })
+              }
+            ></input>
+          </div>
+          <ChaseListing pb_id={pb.id} chase={pb.chase} />
         </div>
       )}
     </Modal>
@@ -82,7 +86,6 @@ export function PlaybackEditModal({
 }
 
 export function Playback({
-  id,
   active,
   isRecording,
   onRecord,
@@ -90,7 +93,6 @@ export function Playback({
   onEditPlayback,
   pb,
 }: {
-  id: number;
   active: boolean;
   setActive: (newActive: boolean) => void;
   isRecording: boolean;
@@ -141,6 +143,7 @@ export function Playback({
         <span className="absolute top-0 left-0 w-min m-1">
           {(pb?.key === "toggle" && "T") || (pb?.key === "flash" && "F")}
         </span>
+        <span className="absolute top-0 right-0 w-min m-1">{pb?.id}</span>
         <span className="p-2 mx-1">{pb?.name}</span>
       </button>
     </Fragment>
@@ -161,8 +164,8 @@ export function Playbacks({
 
   const editingPb = playbacks.find((compPb) => compPb.id === editPbId);
 
-  const onRecord = async (id: number) => {
-    await recordPlayback(id);
+  const onRecord = async (slot: number) => {
+    await recordPlayback(slot);
     onRecorded();
   };
 
@@ -226,18 +229,17 @@ export function Playbacks({
         onClose={() => setEditPbId(undefined)}
       ></PlaybackEditModal>
       <div className="grid grid-cols-12">
-        {Array.from(new Array(144), (x, i) => i).map((id) => {
-          const pb = playbacks.find((pb) => pb.id === id);
+        {Array.from(new Array(144), (x, i) => i).map((slot) => {
+          const pb = playbacks.find((pb) => pb.slot === slot);
 
           return (
             <Playback
-              key={id}
-              id={id}
+              key={slot}
               isRecording={isRecording}
-              onRecord={() => onRecord(id)}
-              active={activePlaybacks.indexOf(id) !== -1}
-              setActive={(newState) => changePbState(id, newState)}
-              onEditPlayback={() => setEditPbId(id)}
+              onRecord={() => onRecord(slot)}
+              active={(pb && activePlaybacks.indexOf(pb?.id) !== -1) || false}
+              setActive={(newState) => pb && changePbState(pb?.id, newState)}
+              onEditPlayback={() => setEditPbId(pb?.id)}
               pb={pb}
             ></Playback>
           );

@@ -38,9 +38,23 @@ export interface Playback {
     Record<AllowedParams, FxParam> & Record<"type", AllowedTypes>
   >;
   id: number;
+  slot: number;
   name: string;
+  chase?: Chase;
   priority: number;
   key: "flash" | "toggle";
   sync: boolean;
   duration: number;
+}
+
+export interface ChaseEntry {
+  start: number;
+  end: number;
+  playback_id?: number;
+  id: number;
+}
+
+export interface Chase {
+  duration: number;
+  entries: ChaseEntry[];
 }

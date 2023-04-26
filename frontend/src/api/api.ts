@@ -1,5 +1,10 @@
 import { socket } from "../socket";
-import { Playback, AllowedParams, FxParam } from "../types/playback";
+import {
+  Playback,
+  AllowedParams,
+  FxParam,
+  ChaseEntry,
+} from "../types/playback";
 
 interface PlaybackListRes {
   playbacks: Playback[];
@@ -45,9 +50,9 @@ export async function sendBPM(bpm: number) {
   socket.emit("bpm", { bpm });
 }
 
-export async function recordPlayback(id: number) {
+export async function recordPlayback(slot: number) {
   const data = {
-    id,
+    slot,
   };
   const res = await fetch("/api/record", {
     method: "POST",
@@ -102,5 +107,40 @@ export async function updatePlaybackMeta(id: number, props: Partial<Playback>) {
     headers: {
       "Content-Type": "application/json",
     },
+  });
+}
+
+export async function createUpdateChase(
+  pb_id: number,
+  { duration }: { duration: number }
+) {
+  const res = await fetch(`/api/playback/${pb_id}/chase`, {
+    method: "POST",
+    body: JSON.stringify({ duration }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+export async function deleteChase(pb_id: number) {
+  const res = await fetch(`/api/playback/${pb_id}/chase`, {
+    method: "DELETE",
+  });
+}
+
+export async function chaseEntryUpsert(pb_id: number, entry: ChaseEntry) {
+  const res = await fetch(`/api/playback/${pb_id}/chase/entry`, {
+    method: "POST",
+    body: JSON.stringify(entry),
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+}
+
+export async function chaseEntryDelete(pb_id: number, entryid: number) {
+  const res = await fetch(`/api/playback/${pb_id}/chase/entry/${entryid}`, {
+    method: "DELETE",
   });
 }

@@ -5,6 +5,8 @@ from flask import Flask, request
 from flask_socketio import SocketIO
 import json
 
+import chase
+
 from os import path, makedirs
 
 from sanitize_filename import sanitize
@@ -61,10 +63,32 @@ def render_playbacks():
 def update_playback_states():
     global active_playbacks, lock
     t = get_bpm_time()
-    for pb in active_playbacks:
-        if pb["duration"] != 0 and t - pb["startbpmtime"] > pb["duration"]:
-            off(pb_id = pb["id"])
+    queue_on = []
+    queue_off = []
+    with lock:
+        for pb in active_playbacks:
+            pb_time = playback.get_playback_time(pb, t)
+            if pb["chase"] != None:
+                chaseTime = chase.get_chase_time(pb["chase"], pb_time)
+                for chaseEntry in pb["chase"]["entries"]:
+                    if chaseEntry["playback_id"] == None:
+                        continue
+                    if chaseEntry["start"] > pb["chase"]["lasttime"] and chaseEntry["start"] <= chaseTime:
+                        queue_on.append(chaseEntry["playback_id"])
+                    if chaseEntry["end"] > pb["chase"]["lasttime"] and chaseEntry["end"] <= chaseTime:
+                        queue_off.append(chaseEntry["playback_id"])
+                pb["chase"]["lasttime"] = chaseTime
+            if pb["duration"] != 0 and t - pb["startbpmtime"] > pb["duration"]:
+                if pb["chase"] != None:
+                    for chaseEntry in pb["chase"]["entries"]:
+                        queue_off.append(chaseEntry["playback_id"])
+                queue_off.append(pb["id"])
+    
+    for onid in queue_on:
+        on(pb_id = onid)
 
+    for offid in queue_off:
+        off(pb_id = offid)
 
 def update_time(t):
     global realtime
@@ -168,13 +192,14 @@ def record():
     global programmer, playbacks, lock
     with lock:
         pb = deepcopy(programmer)
-        pb["id"] = request.json["id"]
+        pb["slot"] = request.json["slot"]
+        pb["id"] = len(playbacks)
         playbacks.append(pb)
         apisocket.emit('new_playback', pb)
         return '', 200
 
 @api.route('/api/playback/<pb_id>/meta', methods=["PATCH"])
-def on(pb_id=0):
+def meta(pb_id=0):
     global playbacks, active_playbacks, lock
     pb_id = int(pb_id)
     with lock:
@@ -193,6 +218,68 @@ def on(pb_id=0):
                 m["duration"] = request.json["duration"]
             apisocket.emit('update_playback', m)
         return '', 200
+
+@api.route('/api/playback/<pb_id>/chase', methods=["POST"])
+def chaseupdate(pb_id=0):
+    global playbacks, active_playbacks, lock
+    pb_id = int(pb_id)
+    with lock:
+        matches = [x for x in playbacks if x["id"] == pb_id]
+        for m in matches:
+            if m["chase"] == None:
+                m["chase"] = chase.new_chase()
+            m["chase"]["duration"] = request.json["duration"]
+            apisocket.emit('update_playback', m)
+        return '', 200
+    
+@api.route('/api/playback/<pb_id>/chase', methods=["DELETE"])
+def chasedelete(pb_id=0):
+    global playbacks, active_playbacks, lock
+    pb_id = int(pb_id)
+    with lock:
+        matches = [x for x in playbacks if x["id"] == pb_id]
+        for m in matches:
+            m["chase"] = None
+            apisocket.emit('update_playback', m)
+        return '', 200
+    
+@api.route('/api/playback/<pb_id>/chase/entry', methods=["POST"])
+def chase_entry_upsert(pb_id=0):
+    global playbacks, active_playbacks, lock
+    pb_id = int(pb_id)
+    with lock:
+        matches = [x for x in playbacks if x["id"] == pb_id]
+        for m in matches:
+            if m["chase"] == None:
+                return '', 400
+            entries = [x for x in m["chase"]["entries"] if x["id"] == request.json["id"]]
+            pid = None
+            if "playback_id" in request.json:
+                pid = request.json["playback_id"]
+            newentry = chase.ChaseEntry(start=request.json["start"], end=request.json["end"], playback_id=pid, id=request.json["id"])
+            if len(entries) == 0:
+                m["chase"]["entries"].append(newentry)
+            else:
+                for i, entry in enumerate(m["chase"]["entries"]):
+                    if entry["id"] == newentry["id"]:
+                        m["chase"]["entries"][i] = newentry
+            apisocket.emit('update_playback', m)
+    return '', 200
+
+@api.route('/api/playback/<pb_id>/chase/entry/<entry_id>', methods=["DELETE"])
+def chase_entry_delete(pb_id=0, entry_id=0):
+    global playbacks, active_playbacks, lock
+    pb_id = int(pb_id)
+    entry_id = int(entry_id)
+    with lock:
+        matches = [x for x in playbacks if x["id"] == pb_id]
+        for m in matches:
+            if m["chase"] == None:
+                return '', 400
+            trimmedentries = [x for x in m["chase"]["entries"] if x["id"] != entry_id]
+            m["chase"]["entries"] = trimmedentries
+        apisocket.emit('update_playback', m)
+    return '', 200
 
 def on(pb_id=0):
     global playbacks, active_playbacks, lock
