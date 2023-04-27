@@ -8,7 +8,7 @@ import {
 
 import { SketchPicker } from "react-color";
 
-export const paramGroups = ["color", "pos", "type"] as const;
+export const paramGroups = ["color", "pos"] as const;
 
 let hsl2hsv = (
   h: number,
@@ -257,6 +257,42 @@ export function ColorGroup({
         onChange={onChangeColor}
       ></SketchPicker>
       <p className="mt-auto mb-0">Color</p>
+    </div>
+  );
+}
+
+export function TypeGroup({
+  currentParams,
+  onChange,
+}: {
+  currentParams: Record<AllowedParams, FxParam> & Record<"type", AllowedTypes>;
+  onChange: ((param: AllowedParams, value: FxParam) => void) &
+    ((param: "type", value: AllowedTypes) => void);
+}) {
+  const typeParam =
+    currentParams["type"] !== undefined ? currentParams["type"] : "rect";
+
+  const isModified = currentParams["type"] !== undefined;
+
+  return (
+    <div
+      className={
+        "flex flex-row mx-2 border border-slate-300 p-2 rounded" +
+        (isModified ? " bg-blue-300" : "")
+      }
+    >
+      Type:{" "}
+      <select
+        value={typeParam}
+        onChange={(ev) => {
+          onChange("type", ev.target.value as AllowedTypes);
+        }}
+      >
+        <option>rect</option>
+        <option>tri</option>
+        <option>star</option>
+        <option>circ</option>
+      </select>
     </div>
   );
 }

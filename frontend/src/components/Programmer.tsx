@@ -16,7 +16,13 @@ import {
 } from "react";
 import { AllowedParams, FxParam, Playback } from "../types/playback";
 
-import { ColorGroup, OpacityGroup, PosGroup, paramGroups } from "./Param";
+import {
+  ColorGroup,
+  OpacityGroup,
+  PosGroup,
+  TypeGroup,
+  paramGroups,
+} from "./Param";
 import { socket } from "../socket";
 
 export function SelectButton({
@@ -121,6 +127,14 @@ export function Programmer({
               </SelectButton>
             ))}
           </div>
+          {selectedLayer && programmer && (
+            <TypeGroup
+              currentParams={programmer.layervalues[selectedLayer] || {}}
+              onChange={(param, value) =>
+                modifyProgrammer(selectedLayer, param, value)
+              }
+            ></TypeGroup>
+          )}
         </div>
         <div className="border-l border-slate-400 ml-4 pl-4">
           {selectedLayer && programmer && (

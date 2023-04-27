@@ -4,6 +4,7 @@ import {
   AllowedParams,
   FxParam,
   ChaseEntry,
+  AllowedTypes,
 } from "../types/playback";
 
 interface PlaybackListRes {
@@ -31,8 +32,8 @@ export async function getProgrammer() {
 
 export async function modifyProgrammer(
   layer: string,
-  param: AllowedParams,
-  value: FxParam
+  param: AllowedParams | "type",
+  value: FxParam | AllowedTypes
 ) {
   const data = {
     layer,
@@ -70,7 +71,10 @@ export async function playPlayback(id: number, newstate: boolean) {
 
 export async function getInfo() {
   const res = await fetch("/api/info");
-  const info = (await res.json()) as { showname: string };
+  const info = (await res.json()) as {
+    showname: string;
+    multipliers: Record<string, number>;
+  };
   return info;
 }
 

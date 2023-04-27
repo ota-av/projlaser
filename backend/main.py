@@ -39,6 +39,8 @@ layerids: list[str] = ["1", "2", "3", "4"]
 active_playbacks: list[playback.Playback] = []
 playbacks: list[playback.Playback] = []
 
+multipliers = {"1": 1, "2": 1}
+
 programmer: playback.Playback = playback.new_playback("programmer")
 
 showname: str = "default"
@@ -46,7 +48,7 @@ showname: str = "default"
 lock = threading.Lock()
 
 def render_playbacks():
-    global rendered_layers, active_playbacks, lock, programmer
+    global rendered_layers, active_playbacks, lock, multipliers, programmer
     t = get_bpm_time()
     with lock:
         rendered_layers.clear()
@@ -54,20 +56,20 @@ def render_playbacks():
         for lid in layerids:
             l = layer.new()
             for pb in sorted(active_playbacks, key=lambda x: x["priority"]):
-                playback.apply(pb, l, lid, t)
+                playback.apply(pb, l, lid, t, multipliers)
 
-            playback.apply(programmer, l, lid, t)
+            playback.apply(programmer, l, lid, t, multipliers)
         
             rendered_layers.append(l)
 
 def update_playback_states():
-    global active_playbacks, lock
+    global active_playbacks, multipliers, lock
     t = get_bpm_time()
     queue_on = []
     queue_off = []
     with lock:
         for pb in active_playbacks:
-            pb_time = playback.get_playback_time(pb, t)
+            pb_time = playback.get_playback_time(pb, t, multipliers)
             if pb["chase"] != None:
                 chaseTime = chase.get_chase_time(pb["chase"], pb_time)
                 for chaseEntry in pb["chase"]["entries"]:
@@ -152,10 +154,11 @@ def load():
 
 @api.route('/api/info')
 def info():
-    global showname, lock
+    global showname, multipliers, lock
     with lock:
         return {
             "showname": showname,
+            "multipliers": multipliers
         }
 
 @api.route('/api/playbacks')
@@ -339,7 +342,15 @@ def onbpm(json):
         bpmtime = realduration * bpm/60 # keep bpmtime same to keep FX in same phase etc
         bpm = json["bpm"]
         bpmstarttime = realtime - math.fmod(bpmtime, 0.25)*bpm*60 # keep in same /4 phase
-    
+
+@apisocket.on('multipliers')
+def onMultiplier(json):
+    global multipliers, lock
+    with lock:
+        multipliers = json['multipliers']
+        apisocket.emit('multipliers', multipliers)
+
+
 @display_window.event
 def on_key_press(symbol, modifiers):
     if symbol == window.key.A:
