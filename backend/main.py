@@ -18,9 +18,9 @@ import math
 import layer
 import playback
 import threading
-WIDTH, HEIGHT = 16*75, 9*50
+WIDTH, HEIGHT = 1920, 1080
 
-api = Flask(__name__)
+api = Flask(__name__, static_folder="../build/static", template_folder="../build")
 api.use_reloader = False # Disable reloader to support multithread
 apisocket = SocketIO(api, cors_allowed_origins="*")
 
@@ -30,7 +30,7 @@ bpm = 120
  
 display = canvas.get_display()
 screens = display.get_screens()
-display_window = window.Window(WIDTH, HEIGHT, fullscreen=False, screen=screens[0])
+display_window = window.Window(WIDTH, HEIGHT, fullscreen=True, screen=screens[1])
 
 rendered_layers: list[layer.Layer] = []
 
@@ -72,12 +72,14 @@ def update_playback_states():
             pb_time = playback.get_playback_time(pb, t, multipliers)
             if pb["chase"] != None:
                 chaseTime = chase.get_chase_time(pb["chase"], pb_time)
+                if not "lasttime" in pb["chase"]:
+                    pb["chase"]["lasttime"] = 0
                 for chaseEntry in pb["chase"]["entries"]:
                     if chaseEntry["playback_id"] == None:
                         continue
-                    if chaseEntry["start"] > pb["chase"]["lasttime"] and chaseEntry["start"] <= chaseTime:
+                    if (chaseEntry["start"] > pb["chase"]["lasttime"] or chaseTime < pb["chase"]["lasttime"]) and chaseEntry["start"] <= chaseTime:
                         queue_on.append(chaseEntry["playback_id"])
-                    if chaseEntry["end"] > pb["chase"]["lasttime"] and chaseEntry["end"] <= chaseTime:
+                    if (chaseEntry["end"] > pb["chase"]["lasttime"]) and (chaseEntry["end"] <= chaseTime or chaseTime < pb["chase"]["lasttime"]):
                         queue_off.append(chaseEntry["playback_id"])
                 pb["chase"]["lasttime"] = chaseTime
             if pb["duration"] != 0 and t - pb["startbpmtime"] > pb["duration"]:
@@ -133,6 +135,7 @@ def save():
             showname = request.json['name']
             json.dump(savedict, outf)
             apisocket.emit('reload')
+    return '', 200
 
 @api.route('/api/load', methods=["POST"])
 def load():
@@ -151,6 +154,7 @@ def load():
             bpm = loadedshow['bpm']
             showname = request.json['name']
             apisocket.emit('reload')
+    return '',200
 
 @api.route('/api/info')
 def info():
@@ -298,11 +302,17 @@ def on(pb_id=0):
 def off(pb_id=0):
     global playbacks, active_playbacks, lock
     pb_id = int(pb_id)
+    queue_off = []
     with lock:
         matches = [x for x in active_playbacks if x["id"] == pb_id]
         for m in matches:
             active_playbacks.remove(m)
+            if m["chase"] != None:
+                for chaseEntry in m["chase"]["entries"]:
+                    queue_off.append(chaseEntry["playback_id"])
         apisocket.emit('playback_state', {'id': pb_id, 'action': 'off'})
+    for qoff in queue_off:
+        off(pb_id=qoff)
     
 @api.route('/api/bpm', methods=["POST"])
 def setbpm():

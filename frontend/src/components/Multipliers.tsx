@@ -1,11 +1,11 @@
+import { updateMultipliers } from "../api/api";
+
 export function Multipliers({
-  multipliers,
-  onChange,
+  multipliers
 }: {
   multipliers: Record<string, number>;
-  onChange: (mult: Record<string, number>) => void;
 }) {
-  const onChange = updateMultipliers();
+  const onChange = updateMultipliers;
 
   return (
     <div>

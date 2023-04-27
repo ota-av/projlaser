@@ -148,3 +148,8 @@ export async function chaseEntryDelete(pb_id: number, entryid: number) {
     method: "DELETE",
   });
 }
+
+
+export async function updateMultipliers(multipliers: Record<string, number>) {
+  socket.emit("multipliers", multipliers);
+}

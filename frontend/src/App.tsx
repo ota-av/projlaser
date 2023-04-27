@@ -4,10 +4,11 @@ import { BPMTapper } from "./components/BPMTapper";
 import { Playbacks } from "./components/Playbacks";
 import { socket } from "./socket";
 import { getInfo, load, save } from "./api/api";
+import { Multipliers } from "./components/Multipliers";
 
 function App() {
   const [isRecording, setIsRecording] = useState(false);
-  const [info, setInfo] = useState<{ showname: string }>();
+  const [info, setInfo] = useState<{ showname?: string, multipliers: Record<string, number> }>();
 
   const [editingShowName, setEditingShowName] = useState("");
 
@@ -15,7 +16,14 @@ function App() {
     const onTriggerReload = () => {
       window.location.reload();
     };
+
+    const onMultiplierUpdate = (multipliers: Record<string, number>) => {
+      setInfo((oldinfo) => {
+        return {...oldinfo, multipliers}
+      })
+    }
     socket.on("reload", onTriggerReload);
+    socket.on("multipliers", onMultiplierUpdate);
 
     const load = async () => {
       const info = await getInfo();
@@ -27,6 +35,7 @@ function App() {
 
     return () => {
       socket.off("reload", onTriggerReload);
+      socket.off("multipliers", onMultiplierUpdate);
     };
   }, []);
 
@@ -61,6 +70,7 @@ function App() {
               Load show
             </button>
           </div>
+          {info && <Multipliers multipliers={info?.multipliers}></Multipliers>}
         </div>
       </div>
 
