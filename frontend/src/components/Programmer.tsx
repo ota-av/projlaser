@@ -50,11 +50,13 @@ export function SelectButton({
 export function Programmer({
   className,
   onRecord,
+  show,
   isRecording,
 }: {
   className?: string;
   onRecord: () => void;
   isRecording: boolean;
+  show: boolean;
 }) {
   const [programmer, setProgrammer] = useState<Playback>();
   const [error, setError] = useState<string>();
@@ -93,7 +95,8 @@ export function Programmer({
     };
   }, []);
 
-  const defaultClass = "bg-slate-200";
+  let defaultClass = "bg-slate-200";
+  if(!show) defaultClass += " hidden";
 
   return (
     <div className={className ? className + " " + defaultClass : defaultClass}>

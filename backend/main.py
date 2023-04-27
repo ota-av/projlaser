@@ -204,6 +204,20 @@ def record():
         playbacks.append(pb)
         apisocket.emit('new_playback', pb)
         return '', 200
+    
+@api.route('/api/playback/<pb_id>', methods=["DELETE"])
+def deletepb(pb_id):
+    global programmer, playbacks, active_playbacks, lock
+    pb_id = int(pb_id)
+    with lock:
+        matches = [x for x in active_playbacks if x["id"] == pb_id]
+        for m in matches:
+            active_playbacks.remove(m)
+        matches = [x for x in playbacks if x["id"] == pb_id]
+        for m in matches:
+            playbacks.remove(m)
+            apisocket.emit('delete_playback', pb_id)
+        return '', 200
 
 @api.route('/api/playback/<pb_id>/meta', methods=["PATCH"])
 def meta(pb_id=0):
@@ -212,7 +226,6 @@ def meta(pb_id=0):
     with lock:
         matches = [x for x in playbacks if x["id"] == pb_id]
         for m in matches:
-            print(request.json)
             if ("name" in request.json):
                 m["name"] = request.json["name"]
             if ("key" in request.json):
@@ -223,6 +236,8 @@ def meta(pb_id=0):
                 m["sync"] = request.json["sync"]
             if ("duration" in request.json):
                 m["duration"] = request.json["duration"]
+            if ("link_multiplier_id" in request.json):
+                m["link_multiplier_id"] = request.json["link_multiplier_id"]
             apisocket.emit('update_playback', m)
         return '', 200
 
@@ -354,10 +369,10 @@ def onbpm(json):
         bpmstarttime = realtime - math.fmod(bpmtime, 0.25)*bpm*60 # keep in same /4 phase
 
 @apisocket.on('multipliers')
-def onMultiplier(json):
+def onMultiplier(newMultipliers):
     global multipliers, lock
     with lock:
-        multipliers = json['multipliers']
+        multipliers = newMultipliers
         apisocket.emit('multipliers', multipliers)
 
 

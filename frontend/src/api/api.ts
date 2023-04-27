@@ -64,6 +64,12 @@ export async function recordPlayback(slot: number) {
   });
 }
 
+export async function deletePlayback(id: number) {
+  const res = await fetch("/api/playback/"+id, {
+    method: "DELETE",
+  });
+}
+
 export async function playPlayback(id: number, newstate: boolean) {
   const action = newstate ? "on" : "off";
   socket.emit("playback_state", { id, action });

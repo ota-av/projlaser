@@ -10,6 +10,8 @@ function App() {
   const [isRecording, setIsRecording] = useState(false);
   const [info, setInfo] = useState<{ showname?: string, multipliers: Record<string, number> }>();
 
+  const [showProgrammer, setShowProgrammer] = useState(true);
+
   const [editingShowName, setEditingShowName] = useState("");
 
   useEffect(() => {
@@ -71,10 +73,12 @@ function App() {
             </button>
           </div>
           {info && <Multipliers multipliers={info?.multipliers}></Multipliers>}
+          <button className="p-2 mt-1 bg-blue-400 hover:bg-blue-600 transition duration-100 text-white rounded flex-1" onClick={() => setShowProgrammer(!showProgrammer)}>{showProgrammer ? 'hide' : 'show'} programmer</button>
         </div>
       </div>
 
       <Programmer
+        show={showProgrammer}
         isRecording={isRecording}
         onRecord={() => setIsRecording(!isRecording)}
       ></Programmer>

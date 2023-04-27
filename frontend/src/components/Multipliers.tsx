@@ -14,8 +14,8 @@ export function Multipliers({
           type="number"
           className="w-14"
           min={0}
-          max={1}
-          step={0.05}
+          max={4}
+          step={0.125}
           value={multipliers[mid]}
           onChange={(ev) => {
             onChange({

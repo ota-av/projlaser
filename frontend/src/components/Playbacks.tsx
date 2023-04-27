@@ -1,6 +1,7 @@
 import { useEffect, useState, MouseEvent, Fragment } from "react";
 import { Playback as PlaybackData } from "../types/playback";
 import {
+  deletePlayback,
   listPlaybacks,
   playPlayback,
   recordPlayback,
@@ -24,6 +25,12 @@ export function PlaybackEditModal({
       {pb && (
         <div className="flex flex-row">
           <div className="mr-2 pr-2 border-r">
+              <button
+            className="p-1 mx-2 bg-red-300 hover:bg-red-400 rounded"
+            onClick={() => deletePlayback(pb.id)}
+          >
+            Delete
+          </button>
             <p>Name</p>
             <input
               type="text"
@@ -75,6 +82,16 @@ export function PlaybackEditModal({
               className="border-b border-gray-400 outline-none focus:border-gray-700 transition duration-100"
               onChange={(ev) =>
                 updatePlaybackMeta(pb.id, { duration: Number(ev.target.value) })
+              }
+            ></input>
+            <p className="mt-2">Link multiplier</p>
+            <input
+              type="number"
+              value={pb.link_multiplier_id}
+              step={1}
+              className="border-b border-gray-400 outline-none focus:border-gray-700 transition duration-100"
+              onChange={(ev) =>
+                updatePlaybackMeta(pb.id, { link_multiplier_id: ev.target.value })
               }
             ></input>
           </div>
@@ -132,7 +149,7 @@ export function Playback({
     <Fragment>
       <button
         className={
-          "relative flex-1 m-1 flex flex-col aspect-square items-center justify-center border border-gray-400 rounded transition duration-100 " +
+          "relative flex-1 m-1 flex flex-col aspect-video items-center justify-center border border-gray-400 rounded transition duration-100 " +
           color
         }
         onClick={isRecording ? () => onRecord() : undefined}
@@ -194,6 +211,15 @@ export function Playbacks({
         return [...oldPbs, pb];
       });
     };
+    
+    const onDeletePlayback = (pbid: number) => {
+      setPlaybacks((oldPbs) => {
+        return [...oldPbs.filter((val) => val.id !== pbid)];
+      });
+      setActivePlaybacks((oldPbs) => {
+        return [...oldPbs.filter((val) => val !== pbid)];
+      });
+    };
 
     const onUpdatePlayback = (pb: PlaybackData) => {
       setPlaybacks((oldPbs) => {
@@ -206,6 +232,7 @@ export function Playbacks({
 
     socket.on("playback_state", onPlaybackState);
     socket.on("new_playback", onNewPlayback);
+    socket.on("delete_playback", onDeletePlayback);
     socket.on("update_playback", onUpdatePlayback);
 
     load();
@@ -214,6 +241,7 @@ export function Playbacks({
       socket.off("playback_state", onPlaybackState);
       socket.off("new_playback", onNewPlayback);
       socket.off("update_playback", onUpdatePlayback);
+      socket.off("delete_playback", onDeletePlayback);
     };
   }, []);
 

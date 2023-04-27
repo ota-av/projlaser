@@ -45,6 +45,7 @@ export interface Playback {
   key: "flash" | "toggle";
   sync: boolean;
   duration: number;
+  link_multiplier_id: string;
 }
 
 export interface ChaseEntry {
